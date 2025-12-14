@@ -1,11 +1,8 @@
-import dotenv from 'dotenv';
-
-dotenv.config();
+// MCP servers receive environment variables from the client configuration
+// No need for dotenv which pollutes the stdio stream with informational messages
 
 export function validateConfig() {
     if (!process.env.TEABLE_API_KEY) {
-        console.error('Error: Missing required environment variable: TEABLE_API_KEY');
-        console.error('Please set TEABLE_API_KEY in your environment or .env file');
-        process.exit(1);
+        throw new Error('Missing required environment variable: TEABLE_API_KEY. Please set it in your MCP config or .env file');
     }
 }
