@@ -18,22 +18,17 @@ This server enables AI agents to seamlessly query records, explore schema struct
 
 This MCP server exposes a comprehensive set of tools to LLMs, allowing for deep integration with your Teable database:
 
-*   **`query_teable`**: Query data from a specific table with advanced support for:
-    *   **Filtering**: Use SQL-like or JSON filter syntax to pinpoint exact data.
-    *   **Sorting**: Order functionality for organized results.
-    *   **Limiting**: Control record counts for efficient context usage.
-    *   **Views**: Filter records by specific database views.
-*   **`get_record`**: Retrieve precise details of a single record by its ID.
-*   **`get_record_history`**: Access the full change history of a specific record to track evolution over time.
-*   **`list_spaces`**: Discover all spaces available to the user.
-*   **`list_bases`**: detailed listing of all bases within a specific space.
-*   **`list_tables`**: detailed listing of all tables within a specific base.
-*   **`list_views`**: Retrieve all views within a table to understand different data perspectives.
-*   **`get_table_fields`**: Fetch the full schema (field definitions) of a table to enable the AI to understand your data structure and types.
+*   **Discovery tools**: `list_spaces`, `list_bases`, `list_tables`, `list_views`, `get_table_fields`
+*   **Record reads**: `list_records`, `list_all_records`, `get_record`, `get_record_history`, `get_record_status`, `get_table_records_history`
+*   **Record writes (CRUD)**: `create_records`, `update_record`, `update_multiple_records`, `delete_record`, `delete_records`, `duplicate_record`
+*   **Attachments**: `upload_attachment` (supports `filePath` or `fileUrl`)
+*   **Helpers**: `link_cell_candidates`, `resolve_field_keys`
+*   **OAuth**: `oauth_build_authorize_url`, `oauth_exchange_code`, `oauth_refresh_token`, `oauth_revoke_tokens`
+*   **Legacy compatibility**: `query_teable`
 
 ## 🛠 Configuration
 
-To use this server, you need a **Teable API Key**.
+You can use this server with either a **Teable API Key** or **OAuth tokens**.
 
 1.  **Get your API Key**:
     *   Log in to your Teable account and navigate to [Personal Access Token settings](https://app.teable.ai/setting/personal-access-token).
@@ -47,8 +42,13 @@ To use this server, you need a **Teable API Key**.
 
 | Variable | Description | Required | Default |
 | :--- | :--- | :--- | :--- |
-| `TEABLE_API_KEY` | Your Personal Access Token | **Yes** | - |
-| `TEABLE_BASE_URL` | API Endpoint (Change if self-hosting) | **Yes** | `https://app.teable.ai/api` |
+| `TEABLE_API_KEY` | Your Personal Access Token | No (if OAuth is used) | - |
+| `TEABLE_BASE_URL` | Base Teable URL (without `/api`) | No | `https://app.teable.ai` |
+| `TEABLE_OAUTH_ACCESS_TOKEN` | OAuth access token | No | - |
+| `TEABLE_OAUTH_REFRESH_TOKEN` | OAuth refresh token | No | - |
+| `TEABLE_OAUTH_CLIENT_ID` | OAuth client id | No | - |
+| `TEABLE_OAUTH_CLIENT_SECRET` | OAuth client secret | No | - |
+| `TEABLE_OAUTH_TOKEN_ENDPOINT` | Override OAuth token endpoint | No | `${TEABLE_BASE_URL}/api/oauth/access_token` |
 
 ## 🚀 Usage
 
@@ -73,7 +73,7 @@ Add the following configuration to your `claude_desktop_config.json`:
       ],
       "env": {
         "TEABLE_API_KEY": "mcp_sk_xxxxxxxxxxxxxx",
-        "TEABLE_BASE_URL": "https://app.teable.ai/api"
+        "TEABLE_BASE_URL": "https://app.teable.ai"
       }
     }
   }
@@ -94,7 +94,7 @@ Add the following configuration to your `claude_desktop_config.json`:
     ```
 7.  Add your Environment Variables in the env section:
     *   `TEABLE_API_KEY`: `your_api_key`
-    *   `TEABLE_BASE_URL`: `https://app.teable.ai/api`
+    *   `TEABLE_BASE_URL`: `https://app.teable.ai`
 
 
 ## 💻 Local Development
@@ -118,8 +118,21 @@ Add the following configuration to your `claude_desktop_config.json`:
 4.  **Debug using MCP Inspector**:
     ```bash
     export TEABLE_API_KEY=your_api_key
-    export TEABLE_BASE_URL=https://app.teable.ai/api
+    export TEABLE_BASE_URL=https://app.teable.ai
     npm run inspector
+    ```
+
+5.  **Run tests**:
+    ```bash
+    npm test
+    ```
+
+6.  **Optional live smoke test**:
+    ```bash
+    export TEABLE_API_KEY=your_api_key
+    export TEABLE_SMOKE_TABLE_ID=your_table_id
+    export TEABLE_SMOKE_WRITABLE_FIELD_ID=your_field_id
+    npm run test:smoke
     ```
 
 ## 🤝 Contributing
