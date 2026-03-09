@@ -39,7 +39,7 @@ This server currently registers these tool groups:
 
 | Variable | Description | Required | Default |
 | :--- | :--- | :--- | :--- |
-| `TEABLE_API_KEY` | Teable Personal Access Token (Bearer token) | No | - |
+| `TEABLE_API_KEY` | Teable Personal Access Token. Use the raw PAT; the server sends `Authorization: Bearer <token>`. If you include the `Bearer ` prefix, it will be stripped. | No | - |
 | `TEABLE_BASE_URL` | Teable base URL. `https://app.teable.ai` and `https://app.teable.ai/api` both work. | No | `https://app.teable.ai` |
 | `TEABLE_OAUTH_ACCESS_TOKEN` | OAuth access token (preferred over `TEABLE_API_KEY` when present) | No | - |
 | `TEABLE_OAUTH_REFRESH_TOKEN` | OAuth refresh token | No | - |
@@ -53,6 +53,7 @@ This server currently registers these tool groups:
 - Server startup does not require `TEABLE_API_KEY` or OAuth tokens.
 - Data tools require valid auth at call time.
 - Auth precedence is: `TEABLE_OAUTH_ACCESS_TOKEN` first, then `TEABLE_API_KEY`.
+- Teable PATs are sent as `Authorization: Bearer <token>` per the Teable API guides.
 - If Teable returns `401` and refresh credentials are configured, the client attempts one token refresh and retries once.
 - `TEABLE_OAUTH_CLIENT_ID` and `TEABLE_OAUTH_CLIENT_SECRET` must be set together.
 - `TEABLE_OAUTH_REFRESH_TOKEN` requires both OAuth client env vars above.

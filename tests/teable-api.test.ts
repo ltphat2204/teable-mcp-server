@@ -5,6 +5,7 @@ import qs from "qs";
 import {
   TeableApiError,
   createTeableClient,
+  normalizeAuthToken,
   normalizeTeableError,
   serializeTeableParams,
 } from "../src/teable/api.js";
@@ -76,6 +77,22 @@ describe("normalizeTeableError", () => {
   });
 });
 
+describe("normalizeAuthToken", () => {
+  it("returns undefined for empty values", () => {
+    expect(normalizeAuthToken()).toBeUndefined();
+    expect(normalizeAuthToken("   ")).toBeUndefined();
+  });
+
+  it("keeps raw tokens unchanged", () => {
+    expect(normalizeAuthToken("mcp_sk_123")).toBe("mcp_sk_123");
+  });
+
+  it("strips a bearer prefix", () => {
+    expect(normalizeAuthToken("Bearer mcp_sk_123")).toBe("mcp_sk_123");
+    expect(normalizeAuthToken(" bearer mcp_sk_123 ")).toBe("mcp_sk_123");
+  });
+});
+
 describe("oauthRevoke", () => {
   it("posts to /oauth/client/{clientId}/revoke-token", async () => {
     const request = vi.fn(async () => ({ data: { ok: true } }));
@@ -117,6 +134,52 @@ describe("oauthRevoke", () => {
 });
 
 describe("http verbs", () => {
+  it("sends api keys in the documented bearer header format", async () => {
+    const request = vi.fn(async () => ({ data: { ok: true } }));
+    vi.spyOn(axios, "create").mockReturnValue({
+      request,
+    } as never);
+
+    const client = createTeableClient({
+      baseUrl: "https://app.teable.ai",
+      apiKey: "mcp_sk_123",
+    });
+
+    await client.get("/space");
+
+    expect(request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "GET",
+        url: "/space",
+        headers: expect.objectContaining({
+          Authorization: "Bearer mcp_sk_123",
+        }),
+      })
+    );
+  });
+
+  it("normalizes bearer-prefixed api keys before sending them", async () => {
+    const request = vi.fn(async () => ({ data: { ok: true } }));
+    vi.spyOn(axios, "create").mockReturnValue({
+      request,
+    } as never);
+
+    const client = createTeableClient({
+      baseUrl: "https://app.teable.ai",
+      apiKey: "Bearer mcp_sk_123",
+    });
+
+    await client.get("/space");
+
+    expect(request).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer mcp_sk_123",
+        }),
+      })
+    );
+  });
+
   it("sends put requests through the shared request pipeline", async () => {
     const request = vi.fn(async () => ({ data: { ok: true } }));
     vi.spyOn(axios, "create").mockReturnValue({

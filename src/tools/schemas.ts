@@ -425,17 +425,7 @@ export const getRecordCommentCountInput = z.object({
   recordId: z.string(),
 });
 
-export const getTableCommentCountInput = z.object({
-  tableId: z.string(),
-  viewId: z.string().optional(),
-  ignoreViewQuery: z.boolean().optional(),
-  filter: z.unknown().optional(),
-  filterByTql: z.string().optional(),
-  search: JsonArray.optional(),
-  filterLinkCellCandidate: LinkCellCandidateFilter.optional(),
-  filterLinkCellSelected: LinkCellSelectedFilter.optional(),
-  selectedRecordIds: z.array(z.string()).optional(),
-});
+export const getTableCommentCountInput = ListRecordsQuery;
 
 export const insertAttachmentInput = z.object({
   tableId: z.string(),

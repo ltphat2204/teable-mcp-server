@@ -3,6 +3,7 @@ import FormData from "form-data";
 import qs from "qs";
 
 const DEFAULT_BASE_URL = "https://app.teable.ai";
+const BEARER_PREFIX = /^Bearer\s+/i;
 
 export type TeableClientConfig = {
   baseUrl?: string;
@@ -72,6 +73,19 @@ export function normalizeBaseUrl(baseUrl?: string): string {
 
 export function buildApiBaseUrl(baseUrl?: string): string {
   return `${normalizeBaseUrl(baseUrl)}/api`;
+}
+
+export function normalizeAuthToken(token?: string): string | undefined {
+  if (!token) {
+    return undefined;
+  }
+
+  const trimmed = token.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+
+  return trimmed.replace(BEARER_PREFIX, "").trim() || undefined;
 }
 
 export function serializeTeableParams(params: unknown): string {
@@ -163,8 +177,8 @@ export function createTeableClient(config: TeableClientConfig): TeableClient {
   const baseUrl = normalizeBaseUrl(config.baseUrl);
 
   const oauthState = {
-    accessToken: config.oauth?.accessToken,
-    refreshToken: config.oauth?.refreshToken,
+    accessToken: normalizeAuthToken(config.oauth?.accessToken),
+    refreshToken: normalizeAuthToken(config.oauth?.refreshToken),
     clientId: config.oauth?.clientId,
     clientSecret: config.oauth?.clientSecret,
     tokenEndpoint: config.oauth?.tokenEndpoint || `${baseUrl}/api/oauth/access_token`,
@@ -180,7 +194,7 @@ export function createTeableClient(config: TeableClientConfig): TeableClient {
     },
   });
 
-  const resolveBearerToken = () => oauthState.accessToken || config.apiKey;
+  const resolveBearerToken = () => oauthState.accessToken || normalizeAuthToken(config.apiKey);
 
   const maybeRefreshToken = async (): Promise<boolean> => {
     if (!oauthState.refreshToken || !oauthState.clientId || !oauthState.clientSecret) {
