@@ -16,20 +16,49 @@ This server enables AI agents to seamlessly query records, explore schema struct
 
 ## ✨ Features
 
-This MCP server exposes a comprehensive set of tools to LLMs, allowing for deep integration with your Teable database:
+This MCP server exposes **24 tools** to LLMs, organized into the following categories:
 
-*   **`query_teable`**: Query data from a specific table with advanced support for:
-    *   **Filtering**: Use SQL-like or JSON filter syntax to pinpoint exact data.
-    *   **Sorting**: Order functionality for organized results.
-    *   **Limiting**: Control record counts for efficient context usage.
-    *   **Views**: Filter records by specific database views.
-*   **`get_record`**: Retrieve precise details of a single record by its ID.
-*   **`get_record_history`**: Access the full change history of a specific record to track evolution over time.
-*   **`list_spaces`**: Discover all spaces available to the user.
-*   **`list_bases`**: detailed listing of all bases within a specific space.
-*   **`list_tables`**: detailed listing of all tables within a specific base.
-*   **`list_views`**: Retrieve all views within a table to understand different data perspectives.
-*   **`get_table_fields`**: Fetch the full schema (field definitions) of a table to enable the AI to understand your data structure and types.
+### 🔍 Read / Query
+
+*   **`query_teable`**: Query records from a table with support for filtering, sorting, limiting, and view-scoped results.
+*   **`get_record`**: Retrieve a single record by its ID.
+*   **`get_record_history`**: Access the full change history of a record.
+*   **`list_spaces`**: List all spaces accessible to the user.
+*   **`list_bases`**: List all bases within a specific space.
+*   **`list_tables`**: List all tables within a specific base.
+*   **`list_views`**: List all views within a table.
+*   **`get_table_fields`**: Fetch the full schema (field definitions) of a table.
+
+### 💬 Record Comments
+
+*   **`get_record_comments`**: Retrieve all comments on a specific record.
+*   **`comment_on_record`**: Post a new comment on a record.
+
+### 🏗 Field Management
+
+*   **`create_field`**: Add a new field to a table (supports all field types: singleLineText, number, checkbox, date, singleSelect, multipleSelect, longText, formula, rating, currency, percent, email, url, phoneNumber, attachment).
+*   **`update_field`**: Rename a field or update its description/options.
+*   **`delete_field`**: Permanently remove a field and all its data from a table.
+
+### 📋 Table Management
+
+*   **`create_table`**: Create a new table in a base, optionally with initial fields.
+*   **`update_table`**: Rename a table or update its description.
+*   **`delete_table`**: Move a table to the trash (recoverable).
+*   **`export_table_data`**: Export all table data as CSV.
+
+### 🗑 Table Trash
+
+*   **`get_table_trash`**: List all tables currently in the trash for a base.
+*   **`restore_table_from_trash`**: Restore a trashed table back to the active base.
+*   **`permanently_delete_table`**: Irreversibly delete a table. Cannot be undone.
+
+### 👁 View Management
+
+*   **`create_view`**: Create a new view (grid, gallery, kanban, calendar, gantt, or form).
+*   **`update_view`**: Rename a view or update its filter/sort configuration.
+*   **`delete_view`**: Remove a view from a table.
+*   **`share_view`**: Enable or disable a public share link for a view.
 
 ## 🛠 Configuration
 
@@ -38,7 +67,9 @@ To use this server, you need a **Teable API Key**.
 1.  **Get your API Key**:
     *   Log in to your Teable account and navigate to [Personal Access Token settings](https://app.teable.ai/setting/personal-access-token).
     *   Click **Create New Token**.
-    *   **Enable all read permissions** for the scopes (spaces, bases, tables, records, views, fields).
+    *   Enable the following permission scopes:
+        *   **Read**: `space`, `base`, `table`, `record`, `view`, `field`
+        *   **Write/Mutate**: `record` (comments), `field`, `table`, `view`
     *   **Select the appropriate bases** you want the MCP server to access.
     *   Save the token - you'll need this for configuration.
 
