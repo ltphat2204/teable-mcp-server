@@ -1,50 +1,54 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { validateConfig } from "./config.js";
-import { TOOLS } from "./tools/definitions.js";
+import { isSqlQueryEnabled, validateConfig } from "./config.js";
+import { getTools } from "./tools/definitions.js";
 import { handleToolCall } from "./tools/handlers.js";
-import { TeableApiClient } from "./teable-client.js";
+import { createTeableClient } from "./teable/api.js";
 
 // Start the server with STDIO transport
 async function main() {
-    // Validate environment variables
     validateConfig();
+    const sqlQueryEnabled = isSqlQueryEnabled();
 
-    // Get configuration from environment
-    const apiKey = process.env.TEABLE_API_KEY!;
-    const baseUrl = process.env.TEABLE_BASE_URL || "https://app.teable.ai/api";
+    const baseUrl = process.env.TEABLE_BASE_URL || "https://app.teable.ai";
+    const teableClient = createTeableClient({
+        baseUrl,
+        apiKey: process.env.TEABLE_API_KEY,
+        oauth: {
+            accessToken: process.env.TEABLE_OAUTH_ACCESS_TOKEN,
+            refreshToken: process.env.TEABLE_OAUTH_REFRESH_TOKEN,
+            clientId: process.env.TEABLE_OAUTH_CLIENT_ID,
+            clientSecret: process.env.TEABLE_OAUTH_CLIENT_SECRET,
+            tokenEndpoint: process.env.TEABLE_OAUTH_TOKEN_ENDPOINT,
+        },
+    });
 
-    // Initialize Teable client
-    const teableClient = new TeableApiClient(apiKey, baseUrl);
-
-    // Create and configure MCP server
     const server = new McpServer({
         name: "teable-mcp-server",
         version: "1.0.0",
     });
 
-    // Register all tools
-    for (const tool of TOOLS) {
+    for (const tool of getTools(sqlQueryEnabled)) {
         server.tool(
             tool.name,
             tool.description || "",
             tool.inputSchema as any,
             async (args: any) => {
-                const result = await handleToolCall(tool.name, args, teableClient);
-                if (result.isError) {
-                    throw new Error(result.content[0].text);
-                }
-                return result;
+                return handleToolCall(tool.name, args, teableClient, {
+                    baseUrl,
+                    oauthClientId: process.env.TEABLE_OAUTH_CLIENT_ID,
+                    oauthClientSecret: process.env.TEABLE_OAUTH_CLIENT_SECRET,
+                    sqlQueryEnabled,
+                });
             }
         );
     }
 
-    // Connect to stdio transport
     const transport = new StdioServerTransport();
     await server.connect(transport);
 }
 
-main().catch((error) => {
+main().catch(() => {
     process.exit(1);
 });
