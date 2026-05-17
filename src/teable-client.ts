@@ -46,6 +46,11 @@ class TeableApiClient {
         return response.data;
     }
 
+    async getTable(tableId: string) {
+        const response = await this.client.get(`/table/${tableId}`);
+        return response.data;
+    }
+
     async getRecord(tableId: string, recordId: string) {
         const response = await this.client.get(`/table/${tableId}/record/${recordId}`);
         return response.data;

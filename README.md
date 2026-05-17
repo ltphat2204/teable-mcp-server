@@ -16,7 +16,7 @@ This server enables AI agents to seamlessly query records, explore schema struct
 
 ## ✨ Features
 
-This MCP server exposes **24 tools** to LLMs, organized into the following categories:
+This MCP server exposes **26 tools** to LLMs, organized into the following categories:
 
 ### 🔍 Read / Query
 
@@ -39,6 +39,11 @@ This MCP server exposes **24 tools** to LLMs, organized into the following categ
 *   **`create_field`**: Add a new field to a table (supports all field types: singleLineText, number, checkbox, date, singleSelect, multipleSelect, longText, formula, rating, currency, percent, email, url, phoneNumber, attachment).
 *   **`update_field`**: Rename a field or update its description/options.
 *   **`delete_field`**: Permanently remove a field and all its data from a table.
+
+### 📊 Dependency & Impact Analysis
+
+*   **`get_field_dependency_graph`**: Retrieve the complete local and cross-table dependency graph of fields in a table, resolving formula references and rollups with dynamic Mermaid flowchart visualization.
+*   **`analyze_field_impact`**: Recursively analyze the upstream and downstream safety impact of modifying or deleting a specific field, performing base-wide scans to trace local and foreign dependents with an actionable safety recommendation checklist.
 
 ### 📋 Table Management
 

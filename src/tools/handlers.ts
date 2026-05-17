@@ -1,6 +1,7 @@
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { TeableApiClient } from "../teable-client.js";
-import { isValidQueryTeableArgs, CommentOnRecordArgs, CreateFieldArgs, UpdateFieldArgs, CreateViewArgs, UpdateViewArgs } from "../types.js";
+import { isValidQueryTeableArgs, CommentOnRecordArgs, CreateFieldArgs, UpdateFieldArgs, CreateViewArgs, UpdateViewArgs, GetFieldDependencyGraphArgs, AnalyzeFieldImpactArgs } from "../types.js";
+import { buildDependencyGraph, generateMermaidDiagram, analyzeFieldImpact, getTransitiveClosure } from "../utils/dependency.js";
 
 export async function handleToolCall(name: string, args: any, teableClient: TeableApiClient) {
     try {
@@ -179,6 +180,126 @@ export async function handleToolCall(name: string, args: any, teableClient: Teab
                 const { tableId, viewId, enableShare } = args as { tableId: string; viewId: string; enableShare: boolean };
                 const data = await teableClient.shareView(tableId, viewId, enableShare);
                 return { content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }] };
+            }
+
+            case 'get_field_dependency_graph': {
+                const { tableId } = args as GetFieldDependencyGraphArgs;
+                const { nodes, tableName } = await buildDependencyGraph(tableId, teableClient);
+                
+                const graphData: Record<string, any> = {};
+                for (const [id, node] of nodes.entries()) {
+                    const transitiveDeps = getTransitiveClosure(id, nodes, 'upstream');
+                    const transitiveDepsList = transitiveDeps.filter(c => c.fieldId !== id);
+                    const transitiveDps = getTransitiveClosure(id, nodes, 'downstream');
+                    const transitiveDpsList = transitiveDps.filter(c => c.fieldId !== id);
+
+                    graphData[id] = {
+                        id: node.id,
+                        name: node.name,
+                        type: node.type,
+                        isComputed: node.isComputed,
+                        isLookup: node.isLookup,
+                        expression: node.expression,
+                        directDependencies: node.dependencies,
+                        directDependents: node.dependents,
+                        transitiveDependencies: transitiveDepsList,
+                        transitiveDependents: transitiveDpsList
+                    };
+                }
+
+                const mermaid = generateMermaidDiagram(nodes);
+                let markdown = `## Dependency Graph for Table: ${tableName} (${tableId})\n\n`;
+                
+                markdown += "### Visual Flowchart\n";
+                markdown += "```mermaid\n" + mermaid + "```\n\n";
+
+                markdown += "### Field Relationship Summary\n";
+                for (const [id, info] of Object.entries(graphData)) {
+                    markdown += `#### Field: **${info.name}** (\`${info.id}\` | Type: \`${info.type}\`)\n`;
+                    if (info.directDependencies.length > 0) {
+                        markdown += `- **Directly Depends On**: ${info.directDependencies.map((d: any) => `"${d.fieldName}" (${d.fieldId}${d.tableName ? ` in ${d.tableName}` : ''})`).join(', ')}\n`;
+                    }
+                    if (info.transitiveDependencies.length > info.directDependencies.length) {
+                        markdown += `- **Transitively Depends On**: ${info.transitiveDependencies.map((d: any) => `"${d.fieldName}" (${d.fieldId}${d.tableName ? ` in ${d.tableName}` : ''})`).join(', ')}\n`;
+                    }
+                    if (info.directDependents.length > 0) {
+                        markdown += `- **Directly Referenced By**: ${info.directDependents.map((d: any) => `"${d.fieldName}" (${d.fieldId})`).join(', ')}\n`;
+                    }
+                    if (info.transitiveDependents.length > info.directDependents.length) {
+                        markdown += `- **Transitively Referenced By (Downstream Impact)**: ${info.transitiveDependents.map((d: any) => `"${d.fieldName}" (${d.fieldId})`).join(', ')}\n`;
+                    }
+                    if (info.directDependencies.length === 0 && info.directDependents.length === 0) {
+                        markdown += `- _No dependencies or dependents._\n`;
+                    }
+                    markdown += "\n";
+                }
+
+                const result = {
+                    tableId,
+                    tableName,
+                    fields: graphData,
+                    mermaid,
+                    summaryReport: markdown
+                };
+
+                return {
+                    content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+                };
+            }
+
+            case 'analyze_field_impact': {
+                const { tableId, fieldId } = args as AnalyzeFieldImpactArgs;
+                const report = await analyzeFieldImpact(tableId, fieldId, teableClient);
+
+                let markdown = `## Impact Analysis Report for Field: ${report.fieldName} (${report.fieldId})\n`;
+                markdown += `* **Type**: \`${report.fieldType}\`\n`;
+                markdown += `* **Impact Level**: **${report.impactLevel}**\n`;
+                markdown += `* **Safe to Delete/Modify**: **${report.safeToDelete ? 'Yes' : 'No'}**\n\n`;
+
+                markdown += `### Safety Checklist & Recommendations\n`;
+                for (const rec of report.recommendations) {
+                    markdown += `- ${rec}\n`;
+                }
+                markdown += "\n";
+
+                markdown += `### Local Direct Dependents (${report.directDependents.length})\n`;
+                if (report.directDependents.length > 0) {
+                    for (const d of report.directDependents) {
+                        markdown += `- **${d.fieldName}** (\`${d.fieldId}\` | Type: \`${d.type}\`)\n`;
+                    }
+                } else {
+                    markdown += `_No direct local dependents._\n`;
+                }
+                markdown += "\n";
+
+                markdown += `### Local Transitive Dependents (Indirect Impact) (${report.transitiveDependents.length})\n`;
+                if (report.transitiveDependents.length > 0) {
+                    for (const t of report.transitiveDependents) {
+                        markdown += `- **${t.fieldName}** (\`${t.fieldId}\` | Type: \`${t.type}\`)\n`;
+                    }
+                } else {
+                    markdown += `_No indirect local dependents._\n`;
+                }
+                markdown += "\n";
+
+                markdown += `### Cross-Table Dependents (Foreign Impact) (${report.crossTableDependents.length})\n`;
+                if (report.crossTableDependents.length > 0) {
+                    for (const c of report.crossTableDependents) {
+                        markdown += `- **${c.tableName}.${c.fieldName}** (\`${c.fieldId}\` | Type: \`${c.type}\` | linked via link field: "${c.viaFieldName}")\n`;
+                    }
+                } else {
+                    markdown += `_No cross-table dependents._\n`;
+                }
+                markdown += "\n";
+
+                const result = {
+                    ...report,
+                    summaryReport: markdown
+                };
+
+                return {
+                    content: [{ type: 'text' as const, text: JSON.stringify(result, null, 2) }]
+                };
             }
 
             default:

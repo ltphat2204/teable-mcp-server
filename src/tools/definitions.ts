@@ -212,4 +212,19 @@ export const TOOLS = [
             enableShare: z.boolean().describe("true to enable sharing, false to disable"),
         },
     },
+    {
+        name: "get_field_dependency_graph",
+        description: "Get the dependency graph of fields in a table. Analyzes formula fields, lookup fields, rollup fields, and link fields, and returns recursive upstream/downstream dependencies and a Mermaid visualization.",
+        inputSchema: {
+            tableId: z.string().describe("The Teable Table ID"),
+        },
+    },
+    {
+        name: "analyze_field_impact",
+        description: "Analyze the upstream and downstream impact of modifying or deleting a specific field in a table. Performs base-wide scan to recursively trace local and foreign dependents and returns a safety recommendation checklist.",
+        inputSchema: {
+            tableId: z.string().describe("The Teable Table ID"),
+            fieldId: z.string().describe("The Field ID to analyze"),
+        },
+    },
 ];

@@ -56,3 +56,12 @@ export interface UpdateViewArgs {
     filter?: string; // JSON string, parsed in handler
     sort?: string;   // JSON string, parsed in handler
 }
+
+export interface GetFieldDependencyGraphArgs {
+    tableId: string;
+}
+
+export interface AnalyzeFieldImpactArgs {
+    tableId: string;
+    fieldId: string;
+}
