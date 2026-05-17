@@ -1,4 +1,4 @@
-import { TeableApiClient } from "../teable-client.js";
+import { TeableClient } from "../teable/api.js";
 
 export interface FieldNode {
     id: string;
@@ -64,19 +64,19 @@ export function extractFieldNamesFromFormula(expression: string): string[] {
     return Array.from(new Set(fieldNames));
 }
 
-export async function findBaseIdForTable(tableId: string, client: TeableApiClient): Promise<string | null> {
+export async function findBaseIdForTable(tableId: string, client: TeableClient): Promise<string | null> {
     try {
-        const spaces = await client.listSpaces();
+        const spaces = await client.get("/space") as any[];
         if (!Array.isArray(spaces)) return null;
 
         for (const space of spaces) {
             if (!space.id) continue;
-            const bases = await client.listBases(space.id);
+            const bases = await client.get(`/space/${space.id}/base`) as any[];
             if (!Array.isArray(bases)) continue;
 
             for (const base of bases) {
                 if (!base.id) continue;
-                const tables = await client.listTables(base.id);
+                const tables = await client.get(`/base/${base.id}/table`) as any[];
                 if (!Array.isArray(tables)) continue;
 
                 for (const table of tables) {
@@ -86,7 +86,7 @@ export async function findBaseIdForTable(tableId: string, client: TeableApiClien
                 }
             }
         }
-    } catch (error) {
+    } catch (_error) {
         // Fail-safe default
     }
     return null;
@@ -94,7 +94,7 @@ export async function findBaseIdForTable(tableId: string, client: TeableApiClien
 
 export async function buildDependencyGraph(
     tableId: string,
-    client: TeableApiClient
+    client: TeableClient
 ): Promise<{
     nodes: Map<string, FieldNode>;
     tableName: string;
@@ -103,23 +103,23 @@ export async function buildDependencyGraph(
     let baseId: string | null = null;
     try {
         baseId = await findBaseIdForTable(tableId, client);
-    } catch (e) {
+    } catch (_e) {
         // Fallback
     }
 
     if (baseId) {
         try {
-            const tables = await client.listTables(baseId);
+            const tables = await client.get(`/base/${baseId}/table`) as any[];
             const table = tables.find((t: any) => t.id === tableId);
             if (table && table.name) {
                 tableName = table.name;
             }
-        } catch (e) {
+        } catch (_e) {
             // Fallback
         }
     }
 
-    const fields = await client.getTableFields(tableId);
+    const fields = await client.get(`/table/${tableId}/field`) as any[];
     if (!Array.isArray(fields)) {
         throw new Error(`Failed to retrieve fields for table ${tableId}`);
     }
@@ -151,24 +151,24 @@ export async function buildDependencyGraph(
         let fFields: any[] = [];
         let fName = "Unknown Table";
         try {
-            fFields = await client.getTableFields(fTableId);
-        } catch (e) {
+            fFields = await client.get(`/table/${fTableId}/field`) as any[];
+        } catch (_e) {
             // Fail-safe fallback
         }
         let fBaseId: string | null = null;
         try {
             fBaseId = await findBaseIdForTable(fTableId, client);
-        } catch (e) {
+        } catch (_e) {
             // Fallback
         }
         if (fBaseId) {
             try {
-                const tables = await client.listTables(fBaseId);
+                const tables = await client.get(`/base/${fBaseId}/table`) as any[];
                 const table = tables.find((t: any) => t.id === fTableId);
                 if (table && table.name) {
                     fName = table.name;
                 }
-            } catch (e) {
+            } catch (_e) {
                 // Fallback
             }
         }
@@ -318,7 +318,7 @@ export function generateMermaidDiagram(nodes: Map<string, FieldNode>): string {
 export async function analyzeFieldImpact(
     tableId: string,
     fieldId: string,
-    client: TeableApiClient
+    client: TeableClient
 ): Promise<ImpactReport> {
     const { nodes, tableName } = await buildDependencyGraph(tableId, client);
     const targetNode = nodes.get(fieldId);
@@ -351,19 +351,19 @@ export async function analyzeFieldImpact(
 
     const baseId = await findBaseIdForTable(tableId, client);
     if (baseId) {
-        const tables = await client.listTables(baseId);
+        const tables = await client.get(`/base/${baseId}/table`) as any[];
         if (Array.isArray(tables)) {
             for (const table of tables) {
                 if (table.id === tableId) continue;
 
                 try {
-                    const fFields = await client.getTableFields(table.id);
+                    const fFields = await client.get(`/table/${table.id}/field`) as any[];
                     if (Array.isArray(fFields)) {
                         for (const field of fFields) {
                             if (field.lookupOptions) {
                                 const { foreignTableId, lookupFieldId, linkFieldId } = field.lookupOptions;
                                 if (foreignTableId === tableId && lookupFieldId === fieldId) {
-                                    const linkField = fFields.find(f => f.id === linkFieldId);
+                                    const linkField = fFields.find((f: any) => f.id === linkFieldId);
                                     crossTableDependents.push({
                                         fieldId: field.id,
                                         fieldName: field.name,
@@ -377,7 +377,7 @@ export async function analyzeFieldImpact(
                             }
                         }
                     }
-                } catch (e) {
+                } catch (_e) {
                     // Ignore errors for individual foreign tables
                 }
             }
