@@ -21,6 +21,31 @@ export const TOOLS = [
         },
     },
     {
+        name: "delete_record",
+        description: "Permanently delete a record (all data will be lost). This operation is irreversible.",
+        inputSchema: {
+            tableId: z.string().describe("The Teable Table ID"),
+            recordId: z.string().describe("The record ID to delete"),
+        },
+    },
+    {
+        name: "create_record",
+        description: "Create a new record in a table",
+        inputSchema: {
+            tableId: z.string().describe("The Teable Table ID"),
+            fields: z.string().describe("Record fields as JSON string using field names: { \"FieldName\": value, ... }"),
+        },
+    },
+    {
+        name: "update_record",
+        description: "Update an existing record in a table",
+        inputSchema: {
+            tableId: z.string().describe("The Teable Table ID"),
+            recordId: z.string().describe("The record ID to update"),
+            fields: z.string().describe("Record fields to update as JSON string using field names: { \"FieldName\": value, ... }"),
+        },
+    },
+    {
         name: "list_views",
         description: "List views in a specific table",
         inputSchema: {

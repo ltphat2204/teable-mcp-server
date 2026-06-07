@@ -1,6 +1,6 @@
 import { ErrorCode, McpError } from "@modelcontextprotocol/sdk/types.js";
 import { TeableApiClient } from "../teable-client.js";
-import { isValidQueryTeableArgs, CommentOnRecordArgs, CreateFieldArgs, UpdateFieldArgs, CreateViewArgs, UpdateViewArgs, GetFieldDependencyGraphArgs, AnalyzeFieldImpactArgs } from "../types.js";
+import { isValidQueryTeableArgs, CommentOnRecordArgs, CreateFieldArgs, UpdateFieldArgs, CreateViewArgs, UpdateViewArgs, GetFieldDependencyGraphArgs, AnalyzeFieldImpactArgs, CreateRecordArgs, UpdateRecordArgs } from "../types.js";
 import { buildDependencyGraph, generateMermaidDiagram, analyzeFieldImpact, getTransitiveClosure } from "../utils/dependency.js";
 
 export async function handleToolCall(name: string, args: any, teableClient: TeableApiClient) {
@@ -34,6 +34,42 @@ export async function handleToolCall(name: string, args: any, teableClient: Teab
             case 'get_record': {
                 const { tableId, recordId } = args as { tableId: string; recordId: string };
                 const data = await teableClient.getRecord(tableId, recordId);
+                return {
+                    content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+                };
+            }
+
+            case 'delete_record': {
+                const { tableId, recordId } = args as { tableId: string; recordId: string };
+                const data = await teableClient.deleteRecord(tableId, recordId);
+                return {
+                    content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+                };
+            }
+
+            case 'create_record': {
+                const { tableId, fields } = args as CreateRecordArgs;
+                let parsedFields: any;
+                try {
+                    parsedFields = JSON.parse(fields);
+                } catch (e: any) {
+                    throw new McpError(ErrorCode.InvalidParams, `Invalid JSON format in 'fields': ${e.message}`);
+                }
+                const data = await teableClient.createRecord(tableId, parsedFields);
+                return {
+                    content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
+                };
+            }
+
+            case 'update_record': {
+                const { tableId, recordId, fields } = args as UpdateRecordArgs;
+                let parsedFields: any;
+                try {
+                    parsedFields = JSON.parse(fields);
+                } catch (e: any) {
+                    throw new McpError(ErrorCode.InvalidParams, `Invalid JSON format in 'fields': ${e.message}`);
+                }
+                const data = await teableClient.updateRecord(tableId, recordId, parsedFields);
                 return {
                     content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
                 };
