@@ -4,6 +4,41 @@ A **Model Context Protocol (MCP)** server that connects **Teable** — the super
 
 This server enables AI agents to seamlessly query records, explore schema structures (spaces, bases, tables, views), and retrieve data from your Teable instance using natural language. It acts as a bridge, empowering your AI to interact with your data dynamically and intelligently.
 
+## Official Teable MCP server
+
+Teable also provides an official, hosted MCP server at `https://mcp.teable.ai/mcp`. You can connect directly and authorize access in your browser, without building a local server or creating an API token.
+
+This repository is a community MCP implementation. Its features and local setup instructions are documented below.
+
+### Claude Code
+
+```bash
+claude mcp add --transport http teable https://mcp.teable.ai/mcp
+```
+
+Run `/mcp`, select **teable → Authenticate**, and approve access in your browser.
+
+### Codex CLI
+
+```bash
+codex mcp add teable --url https://mcp.teable.ai/mcp
+codex mcp login teable
+```
+
+The login command opens your browser to authorize access.
+
+### Cursor and other MCP clients
+
+In Teable, open your avatar → **Settings → Developer tools → MCP**. Select your client under **Add the server to your client** and copy its command or configuration. The **Other** tab shows the server URL for your instance.
+
+The official server uses your existing Teable permissions. You can revoke access under **Connected clients** on the same settings page. For scripts or CI without a browser, see the official guide for personal access token authentication.
+
+### Official links
+
+* [MCP setup and access management guide](https://help.teable.ai/en/basic/ai/teable-skill#connect-through-mcp)
+* [Official announcement and usage examples](https://teable.ai/blog/connect-ai-tools-to-teable-with-mcp)
+* [Community announcement](https://community.teable.ai/t/connect-ai-tools-to-teable-with-mcp/368)
+
 ## 🌟 What is Teable?
 
 [Teable](https://teable.io) is a next-generation, open-source, no-code database built on Postgres. It combines the ease of use of a spreadsheet with the power of a relational database.
